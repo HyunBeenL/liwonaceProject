@@ -1,5 +1,6 @@
 package com.leehv1234.reaoneproject.config;
 
+import com.leehv1234.reaoneproject.tool.KnowledgeGraphTool;
 import com.leehv1234.reaoneproject.tool.VectorSearchTool;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
@@ -15,9 +16,10 @@ import org.springframework.context.annotation.Configuration;
 public class McpToolConfig {
 
     @Bean
-    public ToolCallbackProvider toolCallbackProvider(VectorSearchTool vectorSearchTool) {
+    public ToolCallbackProvider toolCallbackProvider(VectorSearchTool vectorSearchTool,
+                                                     KnowledgeGraphTool knowledgeGraphTool) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(vectorSearchTool)
+                .toolObjects(vectorSearchTool, knowledgeGraphTool)
                 .build();
     }
 }
