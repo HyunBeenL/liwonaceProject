@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: reaone-postgres
+    environment:
+      POSTGRES_DB: companyx
+      POSTGRES_USER: companyx
+      POSTGRES_PASSWORD: companyx
+      # 한글 문서를 다루므로 UTF-8 고정
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # 초기화 스크립트는 최초 기동 시 1회만, 파일명 알파벳 순으로 실행된다.
+      # 디렉터리를 통째로 마운트하면 그 안에 개별 파일을 겹쳐 마운트할 수 없으므로
+      # (read-only 마운트 안에는 마운트포인트를 만들 수 없다) 전부 파일 단위로 건다.
+      # 실행 순서가 곧 의존 순서다 — 확장 → 스키마 → 데이터 → 변경 → 그래프.
+      - ./docker/postgres/init/01-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
+      - ./dataset/sql/01-schema.sql:/docker-entrypoint-initdb.d/02-schema.sql:ro
+      - ./dataset/sql/02-data.sql:/docker-entrypoint-initdb.d/03-data.sql:ro
+      - ./docker/postgres/init/04-embedding-dimension.sql:/docker-entrypoint-initdb.d/04-embedding-dimension.sql:ro
+      - ./docker/postgres/init/05-graph-schema.sql:/docker-entrypoint-initdb.d/05-graph-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U companyx -d companyx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: reaone-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    # GPU가 있으면 아래 주석을 해제한다. 없어도 CPU로 동작한다.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  postgres-data:
+  ollama-data:

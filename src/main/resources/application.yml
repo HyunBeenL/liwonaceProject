@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: reaoneProject
+
+  autoconfigure:
+    exclude:
+      # 문서는 대회 데이터셋이 제공하는 document_chunks 테이블에 직접 적재한다.
+      # PgVectorStore를 쓰면 자체 규격의 vector_store 테이블을 따로 만들어
+      # 데이터셋 스키마와 이중화되므로 자동 설정을 끈다.
+      # (임베딩 생성은 Ollama의 EmbeddingModel 빈을 그대로 사용한다.)
+      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:companyx}
+    username: ${DB_USER:companyx}
+    password: ${DB_PASSWORD:companyx}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    # 스키마는 대회 데이터셋의 DDL이 소유한다. Hibernate가 건드리지 않도록 한다.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      # 로컬에 없는 모델을 매번 받으려 시도하지 않도록 수동 관리한다.
+      init:
+        pull-model-strategy: never
+      chat:
+        options:
+          # 대회 권장 모델 (Gemma 4 E2B). 레지스트리에서 태그 존재를 확인했다.
+          model: ${OLLAMA_CHAT_MODEL:gemma4:e2b}
+          # NL2SQL은 창의성이 아니라 재현성이 중요하다.
+          temperature: 0.0
+      embedding:
+        options:
+          # 데이터셋 문서가 한국어라 다국어 임베딩 모델을 쓴다. 차원 1024.
+          model: ${OLLAMA_EMBEDDING_MODEL:bge-m3}
+
+    mcp:
+      server:
+        name: companyx-data-platform
+        version: 0.0.1
+        type: SYNC
+        # 반드시 명시해야 한다. McpServerProperties의 Java 기본값은 STREAMABLE이지만
+        # 전송 계층 자동 설정이 @ConditionalOnProperty(matchIfMissing 없음)로 걸려 있어,
+        # 이 줄이 없으면 조건이 "property를 찾지 못함"으로 떨어져 /mcp가 매핑되지 않는다.
+        protocol: STREAMABLE
+
+app:
+  dataset:
+    # 데이터셋은 라이선스상 저장소에 커밋하지 않으므로 경로를 외부에서 바꿀 수 있게 둔다.
+    path: ${DATASET_PATH:./dataset}
+    # 그래프 JSON 적재와 문서 임베딩은 대상 테이블이 비어 있을 때만 수행된다.
+    load-on-startup: ${DATASET_LOAD_ON_STARTUP:true}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    org.springframework.ai: INFO
+    com.leehv1234.reaoneproject: DEBUG
