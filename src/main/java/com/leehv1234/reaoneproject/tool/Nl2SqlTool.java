@@ -39,6 +39,18 @@ public class Nl2SqlTool {
     private static final int MAX_ROWS = 100;
     private static final int STATEMENT_TIMEOUT_MS = 8_000;
 
+    /*
+     * 생성 옵션은 application.yml의 기본값(temperature 0)을 그대로 쓴다.
+     *
+     * 실측으로 확인한 내용이라 남긴다. gemma4:e2b는 SQL 한 줄을 만드는 데 570토큰 넘게
+     * 생성하고 CPU에서 25초를 쓰는데, 대부분이 내부 추론이다. 추론을 끄면 질문당 1~3초로
+     * 줄지만 정확도가 9/10에서 5/10으로 떨어진다. 별칭이 어긋나거나(T1로 조인하고 T2 참조)
+     * 없는 컬럼을 부르는 오류가 나온다. 조인과 별칭을 맞추는 것이 바로 추론이 하는 일이었다.
+     * thinkLow는 둘 다 나빴다. 추론 토큰이 상한을 먹어 SQL이 중간에 잘린다.
+     *
+     * 따라서 이 느림은 낭비가 아니라 정확도의 대가다. 속도를 얻으려면 모델을 바꿔야 한다.
+     */
+
     /**
      * ChatModel을 직접 주입하면 기동이 실패한다.
      *
