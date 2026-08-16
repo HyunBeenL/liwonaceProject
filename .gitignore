@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 빌드 부산물 ###
+# mvn dependency:build-classpath 출력
+cp.txt
+
+### 대회 데이터셋 ###
+# "대회 참가 목적으로만 사용 가능" 라이선스라 공개 저장소에 커밋하지 않는다.
+# https://liwonace.co.kr/blog/9 에서 내려받아 dataset/ 에 풀 것.
+# 앞의 슬래시가 없으면 src/main/java/../dataset 패키지까지 함께 제외되므로 반드시 붙인다.
+/dataset/
