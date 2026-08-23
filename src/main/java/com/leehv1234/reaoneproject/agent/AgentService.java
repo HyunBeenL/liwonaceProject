@@ -5,6 +5,8 @@ import com.leehv1234.reaoneproject.router.ToolRoute;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,9 @@ public class AgentService {
     /** 도구 등록 빈과의 순환을 피하려면 사용 시점에 받아야 한다. Nl2SqlTool과 같은 이유다. */
     private final ObjectProvider<ChatModel> chatModelProvider;
 
+    /** 모델 이름을 알아야 만들 수 있어 첫 호출에 한 번 준비한다. */
+    private volatile OllamaChatOptions answerOptions;
+
     public AgentAnswer ask(String question) {
         long startedAt = System.currentTimeMillis();
 
@@ -57,7 +62,9 @@ public class AgentService {
 
         String answer;
         try {
-            answer = chatModelProvider.getObject().call(buildPrompt(question, route.tool(), trimmed)).trim();
+            ChatModel model = chatModelProvider.getObject();
+            answer = model.call(new Prompt(buildPrompt(question, route.tool(), trimmed), answerOptions(model)))
+                    .getResult().getOutput().getText().trim();
         } catch (Exception e) {
             log.warn("답변 생성 실패: {}", e.toString());
             // 근거는 이미 확보했으므로 문장 생성이 실패해도 조회 결과는 돌려준다.
@@ -69,6 +76,38 @@ public class AgentService {
     }
 
     // ------------------------------------------------------------------
+
+    /**
+     * 답변 생성 전용 옵션.
+     *
+     * <p><b>추론을 끈다.</b> 실측에서 같은 질문이 39.7초에서 14.3초로 줄고
+     * 답변이 오히려 좋아졌다. 추론을 켜면 생성 토큰이 671개까지 늘면서
+     * "장애가 있었습니다" 수준으로 뭉뚱그려지는데, 끄면 147토큰으로
+     * "Client-A의 Product-C1에서는..." 처럼 근거의 고유명사를 그대로 짚는다.
+     *
+     * <p>주어진 문서를 요약하는 일이라 추론할 것이 없고, 길게 생각할수록 구체성이
+     * 사라진 것으로 보인다. SQL 생성은 조인과 별칭을 맞춰야 해서 정반대이므로
+     * {@code Nl2SqlTool}에서는 추론을 켠 채로 둔다.
+     *
+     * <p>모델 이름을 반드시 함께 지정한다. Prompt에 옵션을 넘기면 기본 설정과
+     * 병합되지 않고 대체되어, 빠뜨리면 Spring AI 내장 기본값(mistral)을 호출한다.
+     */
+    private OllamaChatOptions answerOptions(ChatModel model) {
+        OllamaChatOptions local = answerOptions;
+        if (local == null) {
+            synchronized (this) {
+                if (answerOptions == null) {
+                    answerOptions = OllamaChatOptions.builder()
+                            .model(model.getDefaultOptions().getModel())
+                            .disableThinking()
+                            .temperature(0.0d)
+                            .build();
+                }
+                local = answerOptions;
+            }
+        }
+        return local;
+    }
 
     private String buildPrompt(String question, String tool, String evidence) {
         return """
