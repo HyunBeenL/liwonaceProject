@@ -29,6 +29,7 @@
     <properties>
         <java.version>21</java.version>
         <spring-ai.version>2.0.0</spring-ai.version>
+        <surefire.excludedGroups>integration</surefire.excludedGroups>
     </properties>
     <dependencies>
         <dependency>
@@ -94,6 +95,18 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!--
+                        integration 태그가 붙은 테스트는 PostgreSQL과 Ollama가 있어야 한다.
+                        기본 실행에서 제외해 컨테이너 없이도 mvnw test가 통과하도록 한다.
+                        포함하려면: ./mvnw test -Dsurefire.excludedGroups=
+                    -->
+                    <excludedGroups>${surefire.excludedGroups}</excludedGroups>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
