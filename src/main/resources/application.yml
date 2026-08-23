@@ -53,6 +53,13 @@ spring:
         protocol: STREAMABLE
 
 app:
+  agent:
+    # 에이전트가 붙을 MCP 서버 주소. 기본값은 이 애플리케이션 자신이다.
+    # 서버를 별도 프로세스로 띄웠다면 그 주소를 가리키면 된다.
+    mcp-url: ${MCP_SERVER_URL:http://localhost:8080/mcp}
+    # nl2sql은 CPU 추론이라 질문당 20~45초가 걸린다. 기본 타임아웃으로는 짧다.
+    request-timeout: ${MCP_REQUEST_TIMEOUT:PT180S}
+
   dataset:
     # 데이터셋은 라이선스상 저장소에 커밋하지 않으므로 경로를 외부에서 바꿀 수 있게 둔다.
     path: ${DATASET_PATH:./dataset}
