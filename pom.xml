@@ -12,19 +12,26 @@
     <artifactId>reaoneProject</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>reaoneProject</name>
-    <description>reaoneProject</description>
-    <url/>
+    <description>MCP 기반 지능형 데이터 플랫폼 — 2026 오픈소스 개발자대회 지정과제</description>
+    <url>https://github.com/HyunBeenL/liwonaceProject</url>
     <licenses>
-        <license/>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <id>leehv1234</id>
+            <url>https://github.com/HyunBeenL</url>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:https://github.com/HyunBeenL/liwonaceProject.git</connection>
+        <developerConnection>scm:git:https://github.com/HyunBeenL/liwonaceProject.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/HyunBeenL/liwonaceProject</url>
     </scm>
     <properties>
         <java.version>21</java.version>
