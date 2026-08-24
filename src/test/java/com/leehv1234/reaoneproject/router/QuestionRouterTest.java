@@ -111,4 +111,41 @@ class QuestionRouterTest {
         assertThat(route.tool()).isEqualTo(QuestionRouter.VECTOR_SEARCH);
         assertThat(route.arguments()).containsEntry("query", "그래서 결론이 뭐야");
     }
+
+    @Test
+    @DisplayName("예시 질문 30개는 모두 규칙만으로 판단된다")
+    void isConfidentOnEveryExampleQuestion() throws IOException {
+        for (Example example : load()) {
+            ToolRoute route = router.route(example.q());
+            assertThat(route.confident())
+                    .describedAs("규칙이 확신하지 못한 문항: %s (점수=%s)", example.q(), route.scores())
+                    .isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("신호가 전혀 없으면 확신하지 못한 것으로 표시한다")
+    void isNotConfidentWithoutSignals() {
+        ToolRoute route = router.route("그래서 결론이 뭐야");
+        assertThat(route.scores().values()).allMatch(v -> v == 0);
+        assertThat(route.confident()).isFalse();
+    }
+
+    @Test
+    @DisplayName("도구를 지정하면 그 도구에 맞는 인자를 규칙이 만든다")
+    void buildsArgumentsForGivenTool() {
+        // 규칙은 이 질문을 vector_search로 보내지만, 도구를 지정하면 그에 맞춰 인자를 만든다
+        ToolRoute forced = router.forTool(QuestionRouter.KNOWLEDGE_GRAPH, "Product-C1 설치 방법이 궁금해");
+        assertThat(forced.tool()).isEqualTo(QuestionRouter.KNOWLEDGE_GRAPH);
+        assertThat(forced.arguments()).containsEntry("entity", "Product-C1");
+        assertThat(forced.confident()).isFalse();
+    }
+
+    @Test
+    @DisplayName("대체 도구는 점수가 높은 순으로 고른다")
+    void ranksToolsByScore() {
+        ToolRoute route = router.route("Client-A가 사용 중인 제품 목록은?");
+        assertThat(router.rankedTools(route.scores()).getFirst())
+                .isEqualTo(QuestionRouter.KNOWLEDGE_GRAPH);
+    }
 }

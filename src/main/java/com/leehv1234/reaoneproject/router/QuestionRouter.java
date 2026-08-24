@@ -181,9 +181,76 @@ public class QuestionRouter {
         String tool = pick(scores);
         Map<String, Object> arguments = buildArguments(tool, q, entity, relation, types, aggregate);
 
-        ToolRoute route = new ToolRoute(tool, arguments, scores, evidence);
+        ToolRoute route = new ToolRoute(tool, arguments, scores, evidence, isConfident(scores));
         log.debug("route: '{}' → {}", q, route.describe());
         return route;
+    }
+
+    /**
+     * 규칙만으로 판단할 수 있었는지.
+     *
+     * <p>기준은 데이터셋 30문항의 실측 분포에서 잡았다. 30문항은 최소한 1위 2점,
+     * 1위와 2위의 격차 1점을 확보한다. 따라서 <b>1위가 0점이거나 2위와 동점인 구간은
+     * 예시 질문이 한 번도 밟지 않는 영역</b>이다. 그 구간만 에이전트에게 넘기면
+     * 검증된 30/30을 흔들지 않으면서 규칙 밖의 질문에 대응할 수 있다.
+     *
+     * <p>확신하지 못한다고 해서 {@link #route}가 결정을 포기하지는 않는다. 최선의 추정은
+     * 그대로 담아 보내고, 그 결정을 쓸지 LLM에게 다시 물을지는 호출자가 정한다.
+     */
+    private boolean isConfident(Map<String, Integer> scores) {
+        List<Integer> sorted = scores.values().stream()
+                .sorted((a, b) -> Integer.compare(b, a))
+                .toList();
+        int top = sorted.get(0);
+        int second = sorted.get(1);
+        return top > 0 && top > second;
+    }
+
+    /**
+     * 도구를 지정해 인자만 만든다.
+     *
+     * <p>규칙이 확신하지 못해 LLM이 도구를 고른 경우, 그 도구에 맞는 인자는 여전히
+     * 규칙이 만든다. 개체명 추출과 관계 추론은 소형 모델보다 규칙이 정확하기 때문이다.
+     */
+    public ToolRoute forTool(String tool, String question) {
+        ToolRoute base = route(question);
+        if (base.tool().equals(tool)) {
+            return base;
+        }
+
+        String q = question == null ? "" : question.trim();
+        String entity = extractEntity(q);
+        String relation = RELATION_KEYWORDS.entrySet().stream()
+                .filter(e -> q.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst().orElse(null);
+        boolean aggregate = AGGREGATE_KEYWORDS.stream().anyMatch(q::contains);
+
+        Map<String, Object> arguments =
+                buildArguments(tool, q, entity, relation, typeNouns(q, entity), aggregate);
+
+        return new ToolRoute(tool, arguments, base.scores(), base.evidence(), false);
+    }
+
+    /** 점수가 높은 순으로 도구 이름을 돌려준다. 대체 도구를 고를 때 쓴다. */
+    public List<String> rankedTools(Map<String, Integer> scores) {
+        return scores.entrySet().stream()
+                .sorted((a, b) -> {
+                    int byScore = Integer.compare(b.getValue(), a.getValue());
+                    // 점수가 같으면 일반성이 높은 순서로. 무엇을 묻는지 모를 때 문서 검색이 가장 덜 틀린다.
+                    return byScore != 0 ? byScore
+                            : Integer.compare(tieRank(a.getKey()), tieRank(b.getKey()));
+                })
+                .map(Map.Entry::getKey)
+                .toList();
+    }
+
+    private static int tieRank(String tool) {
+        return switch (tool) {
+            case VECTOR_SEARCH -> 0;
+            case KNOWLEDGE_GRAPH -> 1;
+            default -> 2;
+        };
     }
 
     // ------------------------------------------------------------------

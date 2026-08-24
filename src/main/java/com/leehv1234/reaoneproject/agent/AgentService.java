@@ -10,6 +10,8 @@ import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 질문 하나를 답변까지 끌고 가는 에이전트.
  *
@@ -18,10 +20,21 @@ import org.springframework.stereotype.Service;
  * 질문 → 규칙 기반 라우터 → MCP 도구 호출 → 조회 결과 → Ollama가 문장으로 정리 → 답변
  * </pre>
  *
- * <p><b>도구를 고르는 것은 LLM이 아니라 라우터다.</b> Ollama는 두 곳에서만 일한다.
- * nl2sql 도구 안에서 자연어를 SQL로 옮길 때, 그리고 여기서 조회 결과를 문장으로 만들 때다.
- * 이렇게 나누면 도구 선택이 결정적이 되어 같은 질문에 같은 경로가 보장되고,
- * 왜 그 도구를 썼는지 점수로 설명할 수 있다.
+ * <p><b>규칙이 다룰 수 있는 영역은 규칙이, 못 다루는 영역만 모델이 맡는다.</b>
+ * 규칙 기반 라우터가 도구를 결정하고, Ollama는 조회 결과를 문장으로 만든다.
+ * 도구 선택이 결정적이 되어 같은 질문에 같은 경로가 보장되고, 왜 그 도구를 썼는지
+ * 점수로 설명할 수 있다.
+ *
+ * <p>다만 규칙은 만능이 아니다. 데이터셋 예시 질문 30개는 모두 규칙이 판별하지만,
+ * 규칙이 예상하지 못한 질문은 신호가 잡히지 않는다. 그래서 두 곳에서 모델과 협업한다.
+ * <ol>
+ *   <li><b>라우터가 확신하지 못하면</b>(신호가 없거나 1·2위가 동점) LLM에게 도구를 고르게 한다.
+ *       예시 질문 30개는 이 구간을 밟지 않으므로 검증된 30/30은 그대로 유지된다.</li>
+ *   <li><b>도구가 빈손으로 돌아오면</b> 다음 순위 도구로 한 번 더 시도한다.
+ *       그래프에 없는 이름이 문서에는 있을 수 있다.</li>
+ * </ol>
+ * 도구를 LLM이 고른 경우에도 <b>인자는 여전히 규칙이 만든다.</b> 개체명 추출과 관계 추론은
+ * 소형 모델보다 규칙이 정확하다.
  */
 @Slf4j
 @Service
@@ -33,6 +46,7 @@ public class AgentService {
 
     private final QuestionRouter router;
     private final McpToolClient mcpToolClient;
+    private final ToolResultInspector inspector;
 
     /** 도구 등록 빈과의 순환을 피하려면 사용 시점에 받아야 한다. Nl2SqlTool과 같은 이유다. */
     private final ObjectProvider<ChatModel> chatModelProvider;
@@ -44,6 +58,12 @@ public class AgentService {
         long startedAt = System.currentTimeMillis();
 
         ToolRoute route = router.route(question);
+        if (!route.confident()) {
+            // 규칙이 판별하지 못한 질문이다. 도구 선택만 모델에게 맡기고 인자는 규칙이 만든다.
+            String chosen = askModelToChooseTool(question, route);
+            route = router.forTool(chosen, question);
+            log.info("규칙이 확신하지 못해 모델이 도구를 골랐다: {}", chosen);
+        }
         log.info("질문='{}' → {}", question, route.describe());
 
         String evidence;
@@ -54,6 +74,24 @@ public class AgentService {
             return new AgentAnswer(question, route.tool(), route.arguments(),
                     "도구를 호출하지 못해 답변할 수 없다: " + e.getMessage(),
                     null, route.scores(), elapsed(startedAt));
+        }
+
+        // 도구가 빈손으로 돌아오면 다음 순위 도구로 한 번 더 시도한다.
+        if (inspector.isEmpty(evidence)) {
+            String fallback = nextTool(route);
+            if (fallback != null) {
+                log.info("{}가 결과를 내지 못해 {}로 다시 시도한다", route.tool(), fallback);
+                ToolRoute retry = router.forTool(fallback, question);
+                try {
+                    String second = mcpToolClient.call(retry.tool(), retry.arguments());
+                    if (!inspector.isEmpty(second)) {
+                        route = retry;
+                        evidence = second;
+                    }
+                } catch (Exception e) {
+                    log.warn("대체 도구 호출도 실패: {}", e.toString());
+                }
+            }
         }
 
         String trimmed = evidence.length() > MAX_EVIDENCE_CHARS
@@ -76,6 +114,56 @@ public class AgentService {
     }
 
     // ------------------------------------------------------------------
+
+    /**
+     * 규칙이 확신하지 못했을 때 도구 선택을 모델에게 맡긴다.
+     *
+     * <p>도구 설명은 MCP 서버가 노출하는 것을 쓰지 않고 여기에 요약해 둔다. 소형 모델에는
+     * 짧고 대비가 뚜렷한 설명이 유리하고, 선택지가 셋뿐이라 전체 스키마가 필요하지 않다.
+     * 모델이 셋 중 하나를 정확히 답하지 못하면 규칙의 추정을 그대로 쓴다.
+     */
+    private String askModelToChooseTool(String question, ToolRoute fallbackRoute) {
+        String prompt = """
+                다음 질문에 답하려면 어떤 도구를 써야 하는가?
+                도구 이름 하나만 출력한다. 다른 말은 붙이지 않는다.
+
+                vector_search    - 문서 본문에서 찾는다. 장애보고서, 기술문서(설치·운영·API·튜닝),
+                                   회의록, 제안서. 방법·원인·사례·정책처럼 설명이 필요한 질문.
+                knowledge_graph  - 개체 사이의 연결을 따라간다. 고객사가 쓰는 제품, 직원의 소속 부서,
+                                   고객사 담당 직원, 고객사의 프로젝트, 프로젝트를 이끄는 직원,
+                                   이슈를 제기한 고객사. "무엇과 무엇이 이어져 있는가".
+                nl2sql           - 데이터베이스 테이블을 질의한다. 고객사·제품·직원·계약·프로젝트·
+                                   매출·기술지원 티켓의 속성, 날짜, 금액, 개수. 세기·합계·평균·
+                                   정렬·기간 조건이 붙는 질문. 목록을 조건으로 뽑는 질문.
+
+                질문: %s
+
+                도구:""".formatted(question);
+
+        try {
+            ChatModel model = chatModelProvider.getObject();
+            String raw = model.call(new Prompt(prompt, answerOptions(model)))
+                    .getResult().getOutput().getText();
+            for (String candidate : List.of(QuestionRouter.VECTOR_SEARCH,
+                    QuestionRouter.KNOWLEDGE_GRAPH, QuestionRouter.NL2SQL)) {
+                if (raw.contains(candidate)) {
+                    return candidate;
+                }
+            }
+            log.warn("모델이 도구를 특정하지 못했다: {}", raw.strip());
+        } catch (Exception e) {
+            log.warn("도구 선택 질의 실패: {}", e.toString());
+        }
+        return fallbackRoute.tool();
+    }
+
+    /** 이미 시도한 도구 다음으로 점수가 높은 도구. 없으면 null. */
+    private String nextTool(ToolRoute tried) {
+        return router.rankedTools(tried.scores()).stream()
+                .filter(t -> !t.equals(tried.tool()))
+                .findFirst()
+                .orElse(null);
+    }
 
     /**
      * 답변 생성 전용 옵션.

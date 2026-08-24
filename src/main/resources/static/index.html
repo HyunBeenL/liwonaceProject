@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company-X 데이터 플랫폼</title>
+<style>
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface-2: #1c232c;
+    --line:      #2a323d;
+    --line-soft: #222932;
+    --ink:       #e6eaf0;
+    --ink-soft:  #a9b4c2;
+    --muted:     #6e7b8c;
+
+    /* 도구마다 색을 달리해 라우팅 결과가 한눈에 읽히게 한다 */
+    --vector:    #3fb9a6;
+    --graph:     #9d7bea;
+    --sql:       #d9a13b;
+    --accent:    #58a6ff;
+
+    --f-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI",
+              "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --f-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "D2Coding",
+              Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--f-sans);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem) 4rem;
+  }
+
+  /* ---------- header ---------- */
+
+  header { margin-bottom: 2rem; }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.4rem;
+  }
+
+  .sub { color: var(--ink-soft); font-size: 0.95rem; margin: 0; }
+
+  /* ---------- pipeline ---------- */
+
+  .pipeline {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 1.5rem 0 2rem;
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .stage {
+    font-family: var(--f-mono);
+    font-size: 0.74rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid transparent;
+    transition: color .25s, border-color .25s, background .25s;
+    white-space: nowrap;
+  }
+
+  .stage.on {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .stage.done { color: var(--ink-soft); }
+
+  .arrow { color: var(--line); font-size: 0.75rem; }
+
+  /* ---------- ask ---------- */
+
+  .ask {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+  }
+
+  input[type=text] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.75rem 0.95rem;
+  }
+
+  input[type=text]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: transparent;
+  }
+
+  button {
+    background: var(--accent);
+    color: #06121f;
+    border: 0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 0.75rem 1.4rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .samples { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 2rem; }
+
+  .chip {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 400;
+    padding: 0.32rem 0.75rem;
+    cursor: pointer;
+  }
+
+  .chip:hover { border-color: var(--muted); color: var(--ink); }
+  .chip[data-tool=vector_search]:hover   { border-color: var(--vector); }
+  .chip[data-tool=knowledge_graph]:hover { border-color: var(--graph); }
+  .chip[data-tool=nl2sql]:hover          { border-color: var(--sql); }
+
+  /* ---------- result ---------- */
+
+  #result { display: none; flex-direction: column; gap: 1rem; }
+  #result.show { display: flex; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.1rem 1.2rem;
+  }
+
+  .card h2 {
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.8rem;
+    font-weight: 600;
+  }
+
+  .tool-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .tool-badge {
+    font-family: var(--f-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.25rem 0.7rem;
+    border-radius: 5px;
+    border: 1px solid;
+  }
+
+  .tool-badge[data-tool=vector_search]   { color: var(--vector); border-color: var(--vector); background: color-mix(in srgb, var(--vector) 12%, transparent); }
+  .tool-badge[data-tool=knowledge_graph] { color: var(--graph);  border-color: var(--graph);  background: color-mix(in srgb, var(--graph) 12%, transparent); }
+  .tool-badge[data-tool=nl2sql]          { color: var(--sql);    border-color: var(--sql);    background: color-mix(in srgb, var(--sql) 12%, transparent); }
+
+  .elapsed {
+    font-family: var(--f-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .args {
+    font-family: var(--f-mono);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  /* 점수 막대 — 라우터가 왜 그 도구를 골랐는지 보여주는 부분 */
+  .scores { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  .score {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr 1.6rem;
+    align-items: center;
+    gap: 0.7rem;
+    font-family: var(--f-mono);
+    font-size: 0.78rem;
+  }
+
+  .score .name { color: var(--ink-soft); }
+  .score .num  { color: var(--ink-soft); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .bar { height: 7px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 999px; width: 0; transition: width .5s ease; }
+  .bar[data-tool=vector_search] span   { background: var(--vector); }
+  .bar[data-tool=knowledge_graph] span { background: var(--graph); }
+  .bar[data-tool=nl2sql] span          { background: var(--sql); }
+
+  .answer { font-size: 1.02rem; white-space: pre-wrap; margin: 0; }
+
+  details { border-top: 1px solid var(--line-soft); margin-top: 1rem; padding-top: 0.8rem; }
+  summary { cursor: pointer; color: var(--muted); font-size: 0.82rem; font-family: var(--f-mono); }
+  summary:hover { color: var(--ink-soft); }
+
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 0.8rem;
+    overflow-x: auto;
+    max-height: 22rem;
+    margin: 0.7rem 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .err { color: #f0736a; }
+
+  .status {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--muted);
+    font-family: var(--f-mono);
+    font-size: 0.85rem;
+  }
+  .status.show { display: flex; }
+
+  .spinner {
+    width: 0.9rem; height: 0.9rem;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+    .bar span { transition: none; }
+  }
+
+  footer {
+    margin-top: 3rem; padding-top: 1rem;
+    border-top: 1px solid var(--line-soft);
+    color: var(--muted); font-size: 0.78rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">2026 오픈소스 개발자대회 · 지정과제</p>
+    <h1>Company-X 데이터 플랫폼</h1>
+    <p class="sub">일상어로 물으면 규칙 기반 라우터가 도구를 고르고, MCP를 거쳐 PostgreSQL을 조회한 뒤 로컬 LLM이 답합니다.</p>
+  </header>
+
+  <div class="pipeline" id="pipeline">
+    <span class="stage" data-stage="0">사용자 질문</span><span class="arrow">→</span>
+    <span class="stage" data-stage="1">AI 에이전트</span><span class="arrow">→</span>
+    <span class="stage" data-stage="2">라우터</span><span class="arrow">→</span>
+    <span class="stage" data-stage="3">MCP 서버</span><span class="arrow">→</span>
+    <span class="stage" data-stage="4">PostgreSQL</span><span class="arrow">→</span>
+    <span class="stage" data-stage="5">답변 반환</span>
+  </div>
+
+  <form class="ask" id="form">
+    <input type="text" id="q" placeholder="질문을 입력하세요" autocomplete="off" required>
+    <button type="submit" id="send">질문</button>
+  </form>
+
+  <div class="samples" id="samples"></div>
+
+  <div class="status" id="status"><span class="spinner"></span><span id="statusText">조회 중…</span></div>
+
+  <div id="result">
+    <section class="card">
+      <h2>라우터 판단</h2>
+      <div class="tool-row">
+        <span class="tool-badge" id="tool"></span>
+        <code class="args" id="args"></code>
+        <span class="elapsed" id="elapsed"></span>
+      </div>
+      <div class="scores" id="scores"></div>
+    </section>
+
+    <section class="card">
+      <h2>답변</h2>
+      <p class="answer" id="answer"></p>
+      <details>
+        <summary>도구가 조회한 원본 근거 보기</summary>
+        <pre id="evidence"></pre>
+      </details>
+    </section>
+  </div>
+
+  <footer>
+    Java 21 · Spring Boot 4.1 · Spring AI 2.0 · PostgreSQL + pgvector · Ollama(gemma4:e2b, bge-m3) · MCP Streamable HTTP
+  </footer>
+
+</div>
+
+<script>
+  // 도구별로 하나씩. 시연에서 세 경로를 모두 보여주기 위한 예시다.
+  const SAMPLES = [
+    { q: '백업 정책은 어떻게 되어 있어?',        tool: 'vector_search'   },
+    { q: '최근 서버 장애 사례와 원인을 알려줘',   tool: 'vector_search'   },
+    { q: 'Client-A가 사용 중인 제품 목록은?',    tool: 'knowledge_graph' },
+    { q: '경영지원팀 팀장은 누구야?',            tool: 'knowledge_graph' },
+    { q: '2025년 3분기 총 매출액은 얼마야?',      tool: 'nl2sql'          },
+    { q: '평균 연봉이 가장 높은 부서는 어디야?',  tool: 'nl2sql'          }
+  ];
+
+  const TOOL_ORDER = ['knowledge_graph', 'vector_search', 'nl2sql'];
+
+  const $ = (id) => document.getElementById(id);
+  const stages = [...document.querySelectorAll('.stage')];
+
+  // 예시 질문 칩
+  SAMPLES.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.dataset.tool = s.tool;
+    b.textContent = s.q;
+    b.onclick = () => { $('q').value = s.q; $('form').requestSubmit(); };
+    $('samples').appendChild(b);
+  });
+
+  // 파이프라인 단계를 순서대로 밝힌다. 실제 진행과 정확히 동기화되지는 않지만
+  // 어느 단계를 지나는 중인지 보여주는 용도다.
+  let timer = null;
+  function runStages() {
+    stages.forEach(s => s.classList.remove('on', 'done'));
+    let i = 0;
+    stages[0].classList.add('on');
+    timer = setInterval(() => {
+      if (i >= stages.length - 2) return;   // 마지막 단계는 응답 도착 시 켠다
+      stages[i].classList.replace('on', 'done');
+      stages[++i].classList.add('on');
+    }, 700);
+  }
+
+  function finishStages() {
+    clearInterval(timer);
+    stages.forEach(s => { s.classList.remove('on'); s.classList.add('done'); });
+    stages[stages.length - 1].classList.replace('done', 'on');
+  }
+
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = $('q').value.trim();
+    if (!question) return;
+
+    $('send').disabled = true;
+    $('result').classList.remove('show');
+    $('status').classList.add('show');
+    $('statusText').textContent = '라우팅하고 도구를 호출하는 중…';
+    runStages();
+
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      if (!res.ok) throw new Error('서버 응답 ' + res.status);
+      render(await res.json());
+    } catch (err) {
+      $('answer').textContent = '요청에 실패했습니다: ' + err.message;
+      $('answer').classList.add('err');
+      $('tool').textContent = '-';
+      $('tool').removeAttribute('data-tool');
+      $('args').textContent = '';
+      $('elapsed').textContent = '';
+      $('scores').innerHTML = '';
+      $('evidence').textContent = '';
+      $('result').classList.add('show');
+    } finally {
+      finishStages();
+      $('status').classList.remove('show');
+      $('send').disabled = false;
+    }
+  });
+
+  function render(data) {
+    $('answer').classList.remove('err');
+    $('tool').textContent = data.tool;
+    $('tool').dataset.tool = data.tool;
+    $('args').textContent = JSON.stringify(data.arguments);
+    $('elapsed').textContent = (data.elapsedMs / 1000).toFixed(1) + '초';
+    $('answer').textContent = data.answer;
+    $('evidence').textContent = formatEvidence(data.evidence);
+
+    const scores = data.routerScores || {};
+    const max = Math.max(1, ...Object.values(scores));
+    $('scores').innerHTML = '';
+    TOOL_ORDER.forEach(name => {
+      const v = scores[name] ?? 0;
+      const row = document.createElement('div');
+      row.className = 'score';
+      row.innerHTML =
+        '<span class="name">' + name + '</span>' +
+        '<span class="bar" data-tool="' + name + '"><span></span></span>' +
+        '<span class="num">' + v + '</span>';
+      $('scores').appendChild(row);
+      requestAnimationFrame(() => {
+        row.querySelector('.bar > span').style.width = (v / max * 100) + '%';
+      });
+    });
+
+    $('result').classList.add('show');
+  }
+
+  // 도구가 돌려준 JSON을 읽기 좋게 편다. JSON이 아니면 원문 그대로 둔다.
+  function formatEvidence(text) {
+    if (!text) return '(없음)';
+    try { return JSON.stringify(JSON.parse(text), null, 2); }
+    catch { return text; }
+  }
+</script>
+</body>
+</html>

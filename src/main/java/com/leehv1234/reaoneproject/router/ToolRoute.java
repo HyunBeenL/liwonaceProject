@@ -10,11 +10,13 @@ import java.util.Map;
  * @param arguments 그 도구에 넘길 인자
  * @param scores    도구별 점수. 왜 이 도구가 뽑혔는지 설명하는 근거다.
  * @param evidence  점수에 기여한 키워드. 규칙을 고칠 때 어디를 봐야 하는지 알려준다.
+ * @param confident 규칙만으로 판단할 수 있었는지 여부. {@link QuestionRouter} 참조.
  */
 public record ToolRoute(String tool,
                         Map<String, Object> arguments,
                         Map<String, Integer> scores,
-                        Map<String, String> evidence) {
+                        Map<String, String> evidence,
+                        boolean confident) {
 
     public ToolRoute {
         arguments = Map.copyOf(arguments);
@@ -25,6 +27,6 @@ public record ToolRoute(String tool,
     /** 로그와 시연에서 한 줄로 보여주기 위한 표현. */
     public String describe() {
         Map<String, Object> ordered = new LinkedHashMap<>(arguments);
-        return "%s %s (scores=%s)".formatted(tool, ordered, scores);
+        return "%s %s (scores=%s, confident=%s)".formatted(tool, ordered, scores, confident);
     }
 }
