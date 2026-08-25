@@ -442,10 +442,17 @@ curl -X POST http://localhost:8080/api/ask \
 ### GPU 가속 (선택)
 
 AMD/NVIDIA GPU가 있으면 Ollama를 호스트에 네이티브로 설치해 쓸 수 있다.
-컨테이너와 네이티브는 같은 포트를 쓰므로 함께 띄울 수 없다.
+컨테이너와 네이티브는 같은 포트(11434)를 쓰므로 함께 띄울 수 없다.
+네이티브 Ollama를 쓸 때는 PostgreSQL만 컨테이너로 올린다.
 
 ```bash
-docker compose stop ollama   # 포트 11434를 네이티브에 넘긴다
+docker compose up -d postgres    # ollama 컨테이너는 띄우지 않는다
+```
+
+이미 컨테이너 Ollama가 떠 있다면 먼저 내린다.
+
+```bash
+docker compose stop ollama
 ```
 
 모델을 다시 받지 않으려면 컨테이너 볼륨에서 복사한다.
