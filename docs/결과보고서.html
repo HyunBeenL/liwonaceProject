@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>2026년 오픈소스 개발자대회 결과보고서</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.62;
+    color: #111;
+    margin: 0;
+  }
+
+  h1 {
+    font-size: 18pt; text-align: center; margin: 0 0 4mm;
+    padding-bottom: 3mm; border-bottom: 2.5px solid #1a1a1a; letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: 13pt; margin: 8mm 0 3mm; padding: 1.6mm 3mm;
+    background: #eef1f5; border-left: 4px solid #2d5f8b; letter-spacing: -0.01em;
+  }
+  h3 { font-size: 11.5pt; margin: 6mm 0 2.5mm; color: #1d3d5c; }
+  h4 { font-size: 10.5pt; margin: 4mm 0 2mm; }
+
+  p { margin: 0 0 2.5mm; }
+  ul { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  li > ul { margin-top: 1.2mm; margin-bottom: 1.5mm; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 2.5mm 0 4mm;
+    font-size: 9.4pt; page-break-inside: avoid;
+  }
+  th, td { border: 1px solid #b8bfc9; padding: 1.7mm 2.4mm; vertical-align: top; text-align: left; }
+  th { background: #eef1f5; font-weight: 700; }
+  td.c, th.c { text-align: center; }
+
+  code {
+    font-family: Consolas, "D2Coding", monospace;
+    font-size: 9pt; background: #f1f3f6; padding: 0.3mm 1mm; border-radius: 2px;
+  }
+  pre {
+    font-family: Consolas, "D2Coding", monospace;
+    font-size: 8.6pt; line-height: 1.45; background: #f6f8fa;
+    border: 1px solid #d8dee6; border-radius: 3px;
+    padding: 2.5mm 3mm; margin: 2mm 0 3.5mm;
+    white-space: pre; overflow: hidden; page-break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .meta { color: #5a6472; font-size: 9pt; }
+  .fill { background: #fff3cd; border: 1px solid #d9a13b; padding: 0.3mm 1.5mm; font-weight: 700; }
+  .note {
+    background: #f6f8fa; border-left: 3px solid #8b94a3;
+    padding: 2.5mm 3mm; margin: 3mm 0; font-size: 9.4pt;
+  }
+  .page-break { page-break-before: always; }
+  hr { border: 0; border-top: 1px solid #d8dee6; margin: 6mm 0; }
+  strong { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>2026년 오픈소스 개발자대회 결과보고서</h1>
+
+<h2>과제 및 팀 정보</h2>
+<table>
+  <tr><th style="width:22%">팀 명</th><td><span class="fill">기입 필요</span></td>
+      <th style="width:22%">참가부문</th><td><span class="fill">학생 / 일반</span></td></tr>
+  <tr><th>팀 인원</th><td><span class="fill">팀장 포함 　명</span></td>
+      <th>과제유형</th><td><strong>지정과제</strong> (리원에이스)</td></tr>
+</table>
+
+<h2>프로젝트 개요</h2>
+<table>
+  <tr><th style="width:22%">프로젝트명</th>
+      <td>MCP 기반 지능형 데이터 플랫폼</td></tr>
+  <tr><th>프로젝트 등록 URL</th>
+      <td>https://github.com/HyunBeenL/liwonaceProject</td></tr>
+  <tr><th>시연 영상</th>
+      <td><span class="fill">YouTube 링크 기입 필요</span></td></tr>
+  <tr><th>프로젝트 소개</th>
+      <td>일상어 질문을 규칙 기반 라우터가 분석해 적합한 MCP 도구로 위임하고,
+          PostgreSQL 조회 결과를 로컬 소형 LLM이 자연어로 정리해 답변하는
+          사내 데이터 질의 플랫폼</td></tr>
+</table>
+
+<h2>프로젝트 세부 내용</h2>
+
+<h3>개발 배경 및 목적</h3>
+<ul>
+  <li><strong>기존 RAG 파이프라인의 운영 복잡도 문제</strong>
+    <ul>
+      <li>청킹 → 임베딩 → 인덱싱 → 검색 → 리랭킹의 각 단계마다 튜닝 파라미터가 존재</li>
+      <li>단계 간 상호 영향으로 설정 하나가 어긋나면 정확도가 급락하고, 장애 지점이 분산됨</li>
+    </ul>
+  </li>
+  <li><strong>MCP(Model Context Protocol)를 통한 단순화</strong>
+    <ul>
+      <li>도구 호출을 표준 프로토콜 한 겹으로 통합해 파라미터와 장애 지점을 축소</li>
+      <li>표준을 따르므로 특정 클라이언트에 종속되지 않음</li>
+    </ul>
+  </li>
+  <li><strong>소형 로컬 LLM으로 실용적 정확도 달성</strong>
+    <ul>
+      <li>외부 API 없이 Ollama 로컬 실행만으로 구성 (데이터 외부 유출 없음)</li>
+      <li>소형 모델이 취약한 판단은 규칙으로 분리하고, 모델은 잘하는 일에만 투입</li>
+    </ul>
+  </li>
+  <li><strong>달성 목표</strong>
+    <ul>
+      <li>세 가지 데이터 형태(비정형 문서 / 정형 테이블 / 개체 관계)를 하나의 질의 창구로 통합</li>
+      <li>어떤 도구를 왜 선택했는지 설명 가능한 구조</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>개발 환경</h3>
+<ul>
+  <li><strong>언어 및 런타임</strong> — Java 21, Spring Boot 4.1.0, Spring AI 2.0.0,
+      Maven(mvnw 래퍼 포함으로 별도 설치 불필요)</li>
+  <li><strong>데이터 저장소</strong> — PostgreSQL 17 + pgvector 확장(HNSW 코사인 인덱스),
+      Docker Compose 구성 및 초기화 SQL 자동 실행</li>
+  <li><strong>AI 모델(전량 로컬 실행)</strong> — 임베딩 <code>bge-m3</code>(1024차원),
+      언어모델 <code>gemma4:e2b</code>, 실행 런타임 Ollama</li>
+  <li><strong>개발 도구</strong> — IntelliJ IDEA, Git/GitHub,
+      검증 스크립트 PowerShell 5종, 테스트 JUnit 5(라우터 정확도 자동 채점)</li>
+  <li><strong>검증 환경</strong> — CPU 12코어 / RAM 31.7GB,
+      GPU AMD Radeon RX 7600(ROCm, 선택 사항)</li>
+</ul>
+
+<h3>시스템 구성 및 아키텍처</h3>
+
+<p><strong>시스템 구성도</strong></p>
+<pre><code>  사용자 질문
+      │  POST /api/ask
+      ▼
+  AgentService ─────────────────────────── ① AI 에이전트
+      │
+      ├─▶ QuestionRouter ────────────────── ② 규칙 기반 라우터 (LLM 미사용)
+      │     · 키워드 가중 점수 합산으로 도구 결정
+      │     · 개체명·관계·집계 여부까지 인자 생성
+      │
+      ├─▶ McpToolClient
+      │     └── JSON-RPC over HTTP ──▶ /mcp ── ③ MCP 서버
+      │                                  ├── vector_search    pgvector 유사도 검색
+      │                                  ├── knowledge_graph  재귀 CTE 관계 탐색
+      │                                  └── nl2sql           자연어→SQL→읽기전용 실행
+      │                                         │
+      │                                         ▼
+      │                                   PostgreSQL + pgvector ── ④ 데이터 계층
+      │
+      └─▶ Ollama ───────────────────────── ⑤ 답변 생성
+      ▼
+  답변 + 선택 도구 + 인자 + 라우터 점수 + 원본 근거</code></pre>
+
+<p><strong>기술 스택 및 역할</strong></p>
+<table>
+  <tr><th style="width:14%">계층</th><th style="width:30%">기술</th><th>역할</th></tr>
+  <tr><td>진입점</td><td>Spring MVC</td><td>질문 수신, 정적 시연 페이지 제공</td></tr>
+  <tr><td>에이전트</td><td>자체 구현 (<code>AgentService</code>)</td><td>전체 흐름 제어, 폴백·재시도 판단</td></tr>
+  <tr><td>라우터</td><td>자체 구현 (<code>QuestionRouter</code>)</td><td>도구 선택 및 인자 생성 (결정적)</td></tr>
+  <tr><td>프로토콜</td><td>MCP Streamable HTTP</td><td>에이전트↔도구 간 표준 통신</td></tr>
+  <tr><td>도구</td><td>Spring AI <code>@Tool</code> 3종</td><td>검색 · 관계탐색 · SQL생성</td></tr>
+  <tr><td>저장소</td><td>PostgreSQL 17 + pgvector</td><td>벡터 · 정형 · 그래프 데이터 통합 저장</td></tr>
+  <tr><td>모델</td><td>Ollama (bge-m3, gemma4:e2b)</td><td>임베딩, SQL 변환, 답변 생성</td></tr>
+</table>
+
+<p><strong>핵심 데이터 흐름</strong></p>
+<ul>
+  <li><strong>질문 → 도구 결정</strong>: 라우터가 관계 키워드(4점), 문서·정형 키워드(3점),
+      개체명·수량 표현(2점)을 합산해 최고점 도구를 선택. 동일 점수를 판단 신뢰도로도 재사용</li>
+  <li><strong>도구 → 조회</strong>: 도구별로 임베딩 검색 / 재귀 CTE / LLM SQL 생성 후 읽기 전용 실행</li>
+  <li><strong>조회 → 답변</strong>: 확보한 근거만을 컨텍스트로 주어 LLM이 문장 생성(근거 외 내용 생성 금지)</li>
+  <li><strong>적재 흐름</strong>: 기동 시 문서 40건을 임베딩해 <code>document_chunks</code>에,
+      그래프 JSON을 <code>graph_nodes</code>/<code>graph_edges</code>에 적재(테이블이 비어 있을 때만 수행)</li>
+</ul>
+
+<h2 class="page-break">프로젝트 주요 기능</h2>
+
+<h3>프로젝트 상세 내용</h3>
+
+<h4>핵심 기능 1 — 규칙 기반 도구 자동 선택</h4>
+<ul>
+  <li>질문 유형을 키워드 가중 점수로 판별해 세 도구 중 하나로 위임</li>
+  <li>첫 매치가 아닌 <strong>점수 합산 방식</strong>을 채택. 동일 표현이 도구를 가로질러 등장하기 때문
+    <ul>
+      <li>"가장 많은"은 3개 문항에서 2개 도구로 분기 → 관계 키워드 동반 여부로 판별</li>
+      <li>"이슈"는 관계 신호이나 "미팅에서 논의된 이슈"는 회의록 검색 → 문서 신호 누적으로 역전</li>
+      <li>"Product-C1"은 개체명이나 "설치 방법"과 결합 시 기술문서 질의</li>
+    </ul>
+  </li>
+  <li>도구 이름뿐 아니라 <strong>인자까지 생성</strong>: 개체명 추출, 관계 추론, 다중 홉 판단, 집계 여부</li>
+  <li>판단 근거(도구별 점수·기여 키워드)를 응답에 포함해 설명 가능성 확보</li>
+</ul>
+
+<h4>핵심 기능 2 — MCP 도구 3종</h4>
+<table>
+  <tr><th style="width:20%">도구</th><th style="width:46%">처리 방식</th><th>대상 데이터</th></tr>
+  <tr><td><code>vector_search</code></td>
+      <td>bge-m3 임베딩 후 코사인 거리 검색, 유사도 하한 0.5</td><td>비정형 문서 40건</td></tr>
+  <tr><td><code>knowledge_graph</code></td>
+      <td>재귀 CTE 양방향 탐색, 다중 홉·관계 집계 지원</td><td>노드 133 · 관계 354</td></tr>
+  <tr><td><code>nl2sql</code></td>
+      <td>LLM이 SQL 생성 후 3중 검증 하에 실행</td><td>8개 테이블 818행</td></tr>
+</table>
+
+<h4>핵심 기능 3 — LLM이 생성한 SQL의 3중 안전장치</h4>
+<p>모델이 생성한 문자열을 DB에 전달하는 구조이므로 방어를 계층화하였습니다.</p>
+<ul>
+  <li><strong>구문 검사</strong> — <code>SELECT</code>/<code>WITH</code> 외 거부, 조회 외 키워드 차단,
+      다중 문장 차단. 주석·문자열 리터럴을 제거한 뒤 검사해 값에 의한 오탐 방지</li>
+  <li><strong>읽기 전용 트랜잭션</strong> — 구문 검사를 통과해도 쓰기 연산이 실패</li>
+  <li><strong>실행 시간·행 수 제한</strong> — <code>SET LOCAL statement_timeout</code>, 최대 100행</li>
+</ul>
+
+<h4>핵심 기능 4 — 규칙과 모델의 협업 분기</h4>
+<ul>
+  <li>규칙이 <strong>확신하는 구간</strong>(최고점 &gt; 0 이고 2위와 동점 아님)은 규칙대로 처리</li>
+  <li><strong>확신하지 못하는 구간</strong>만 LLM에게 도구 선택 위임. 단 인자는 여전히 규칙이 생성</li>
+  <li>도구가 <strong>빈손으로 반환</strong>하면 다음 순위 도구로 1회 재시도</li>
+  <li>경계값은 예시 질문 30문항의 실측 분포(최소 1위 2점, 최소 격차 1점)보다 낮게 설정하여
+      검증된 경로를 침범하지 않도록 함</li>
+</ul>
+
+<h4>개발 과정</h4>
+<table>
+  <tr><th class="c" style="width:8%">단계</th><th>내용</th></tr>
+  <tr><td class="c">1</td><td>인프라 구성 — Docker Compose, 초기화 SQL, 스키마 확장</td></tr>
+  <tr><td class="c">2</td><td>데이터 적재 — 문서 임베딩, 그래프 JSON 적재</td></tr>
+  <tr><td class="c">3</td><td>MCP 도구 3종 구현 및 도구별 검증</td></tr>
+  <tr><td class="c">4</td><td>규칙 기반 라우터 구현 및 30문항 자동 채점</td></tr>
+  <tr><td class="c">5</td><td>에이전트 구현 — MCP 클라이언트 연결, 답변 생성</td></tr>
+  <tr><td class="c">6</td><td>성능 측정 및 최적화 — 추론 옵션 분리, GPU 전환</td></tr>
+  <tr><td class="c">7</td><td>일반화 측정 및 협업 분기 추가</td></tr>
+</table>
+<p class="meta">각 커밋은 독립적으로 컴파일되며, 설계 판단의 근거를 커밋 메시지에 기록하였습니다.</p>
+
+<h3>구동 및 시연</h3>
+
+<p><strong>실행 방법</strong></p>
+<pre><code># 1. 컨테이너 기동 후 healthy 확인
+docker compose up -d
+docker compose ps
+
+# 2. 모델 준비 (최초 1회, 약 7.7 GiB)
+docker exec reaone-ollama ollama pull bge-m3
+docker exec reaone-ollama ollama pull gemma4:e2b
+
+# 3. 데이터셋을 dataset/ 에 배치
+#    (대회 제공 데이터셋은 재배포 조건상 저장소에 미포함)
+
+# 4. 실행
+./mvnw spring-boot:run</code></pre>
+<p>브라우저에서 <code>http://localhost:8080</code> 접속 시 질문 입력, 선택된 도구,
+라우터 점수, 답변, 원본 근거를 한 화면에서 확인할 수 있습니다.</p>
+
+<p><strong>테스트 방법</strong></p>
+<pre><code>./mvnw test</code></pre>
+<ul>
+  <li><strong>컨테이너 없이 실행 가능.</strong> 라우터의 도구 선택 정확도를 예시 질문 30문항으로 자동 채점</li>
+  <li>DB가 필요한 통합 테스트는 <code>integration</code> 태그로 분리
+      (<code>./mvnw test -Dsurefire.excludedGroups=</code> 로 포함 실행)</li>
+</ul>
+
+<p><strong>검증 결과</strong></p>
+<table>
+  <tr><th style="width:56%">항목</th><th>결과</th></tr>
+  <tr><td>라우터 도구 선택 (예시 질문 30문항)</td><td><strong>30 / 30</strong></td></tr>
+  <tr><td><code>vector_search</code> 문서 타입 적중</td><td><strong>10 / 10</strong></td></tr>
+  <tr><td><code>knowledge_graph</code></td><td><strong>9 / 10</strong> (1문항은 데이터셋 자체 결함)</td></tr>
+  <tr><td><code>nl2sql</code> 실행 성공 / 정답</td><td>10 / 10 &nbsp;·&nbsp; <strong>9 / 10 안팎</strong></td></tr>
+</table>
+
+<p><strong>응답 시간</strong> (질문 → 답변 전 구간)</p>
+<table>
+  <tr><th style="width:40%">도구</th><th class="c">CPU</th><th class="c">GPU (ROCm)</th></tr>
+  <tr><td><code>knowledge_graph</code></td><td class="c">4.8초</td><td class="c"><strong>0.9초</strong></td></tr>
+  <tr><td><code>vector_search</code></td><td class="c">18.3초</td><td class="c"><strong>3.7초</strong></td></tr>
+  <tr><td><code>nl2sql</code></td><td class="c">34.5초</td><td class="c"><strong>8.4초</strong></td></tr>
+</table>
+
+<h2>기대효과 및 활용 분야</h2>
+
+<h3>향후 확장성</h3>
+<ul>
+  <li><strong>도구 추가가 독립적</strong> — MCP 도구를 추가하고 라우터에 키워드를 등록하면 확장 완료.
+      기존 도구·에이전트 코드 수정 불필요</li>
+  <li><strong>데이터 소스 교체 용이</strong> — 도구 내부만 교체하면 되므로 사내 위키,
+      이슈 트래커, 파일 서버 등으로 대상 확장 가능</li>
+  <li><strong>모델 독립성</strong> — Ollama가 지원하는 모델로 자유 교체. 작업별로 다른 모델 배정 가능
+      (예: SQL 생성은 코드 특화 모델, 답변 생성은 경량 모델)</li>
+  <li><strong>표준 클라이언트 호환</strong> — MCP 표준을 구현했으므로 별도 개발 없이
+      다양한 MCP 클라이언트에서 사용 가능</li>
+</ul>
+
+<h3>기대효과</h3>
+<ul>
+  <li><strong>데이터 주권 확보</strong> — 전 과정 로컬 실행으로 사내 데이터가 외부로 전송되지 않음.
+      보안 규정이 엄격한 조직에서도 도입 가능</li>
+  <li><strong>운영 비용 절감</strong> — 외부 API 호출 비용 없음. 기존 사내 서버에서 구동 가능</li>
+  <li><strong>판단 근거의 추적성</strong> — 도구 선택 점수와 원본 근거가 응답에 포함되어
+      오답 발생 시 라우터·도구·모델 중 어느 단계의 문제인지 즉시 구분 가능</li>
+</ul>
+
+<h3>활용 분야</h3>
+<ul>
+  <li>사내 지식 검색 (규정 · 매뉴얼 · 회의록 통합 질의)</li>
+  <li>운영 데이터 셀프서비스 조회 (비개발자의 SQL 없는 데이터 접근)</li>
+  <li>고객 지원 이력 및 관계 분석</li>
+  <li>폐쇄망 환경의 문서 · 데이터 질의 시스템</li>
+</ul>
+
+<h2 class="page-break">기타</h2>
+
+<h3>프로젝트의 혁신성 및 차별성</h3>
+
+<h4>1. 규칙과 소형 LLM의 역할 분담을 실측으로 설계</h4>
+<p>단순히 규칙을 쓴 것이 아니라, 어느 작업을 규칙에 맡기고 어느 작업을 모델에 맡길지를
+측정으로 결정했습니다. 세 방식을 42문항으로 비교한 결과는 다음과 같습니다.</p>
+<table>
+  <tr><th style="width:34%">방식</th><th class="c">예시 질문 30</th>
+      <th class="c">표현 변경 12</th><th class="c">합계</th></tr>
+  <tr><td>규칙만</td><td class="c">30 / 30</td><td class="c">8 / 12</td><td class="c">38 / 42</td></tr>
+  <tr><td>LLM만</td><td class="c">24 / 30</td><td class="c">10 / 12</td><td class="c">34 / 42</td></tr>
+  <tr><td><strong>규칙 + LLM 협업</strong></td><td class="c"><strong>30 / 30</strong></td>
+      <td class="c"><strong>10 / 12</strong></td><td class="c"><strong>40 / 42</strong></td></tr>
+</table>
+<p>LLM 단독은 표면 단어에 이끌리는 오류를 보였습니다("DB 튜닝 방법" → <code>nl2sql</code> 선택).
+규칙은 도메인 어휘가 일치할 때 강하고, LLM은 표현이 바뀌어도 의미를 파악합니다.
+<strong>규칙의 확신도가 두 방식의 강점 경계와 일치</strong>했기에, 이를 분기 기준으로 삼아
+양쪽 단독보다 높은 정확도를 얻었습니다.</p>
+
+<h4>2. 추론(thinking) 옵션을 작업별로 분리</h4>
+<p>동일 모델의 추론 옵션이 작업 성격에 따라 정반대 효과를 냈습니다.</p>
+<table>
+  <tr><th style="width:30%">작업</th><th class="c">추론 켬</th><th class="c">추론 끔</th><th class="c">채택</th></tr>
+  <tr><td>SQL 생성</td><td class="c">9 / 10 정답</td><td class="c">5 / 10 정답</td><td class="c"><strong>켬</strong></td></tr>
+  <tr><td>답변 생성</td><td class="c">39.7초 / 671토큰</td><td class="c">14.3초 / 147토큰</td><td class="c"><strong>끔</strong></td></tr>
+</table>
+<p>SQL 생성에서 추론을 끄면 별칭 불일치(<code>T1</code>로 조인 후 <code>T2</code> 참조),
+미존재 컬럼 호출이 발생했습니다. <strong>조인과 별칭을 맞추는 것이 추론이 수행하던 작업</strong>이었습니다.
+반면 답변 생성은 끄는 쪽이 더 빠르면서 더 정확했습니다. 추론을 켜면 "장애가 발생했습니다" 수준으로
+추상화되어 고유명사가 소실되지만, 끄면 근거의 고유명사를 그대로 인용했습니다.</p>
+<div class="note"><strong>소형 모델의 추론 옵션은 켜고 끄는 문제가 아니라 작업별로 분리하는 문제</strong>라는
+결론을 실측으로 도출했습니다.</div>
+
+<h4>3. 오답의 발생 지점을 구분할 수 있는 응답 구조</h4>
+<p>응답에 선택 도구, 전달 인자, 라우터 점수, 도구가 반환한 원본 근거를 모두 포함합니다.
+답변이 틀렸을 때 라우터의 오선택인지, 도구의 조회 실패인지, 모델의 요약 오류인지 즉시 구분됩니다.
+실제로 "최근 서버 장애" 질의에서 시간 조건이 반영되지 않은 원인이 벡터 검색에 시간 정렬이
+없기 때문임을 이 구조로 특정했습니다.</p>
+
+<h4>4. 검증 가능한 SQL 생성</h4>
+<p><code>nl2sql</code> 도구는 실행한 SQL을 결과와 함께 반환합니다. 초기 검증에서 10문항 모두
+"실행 성공"이었으나 SQL을 개별 확인한 결과 2건이 오류였습니다. 그중 하나는
+<code>employees.dept_id = departments.head_id</code>라는 잘못된 조인이었는데, 해당 데이터에서
+<code>head_id</code>와 <code>id</code>가 우연히 일치해 <strong>결과만으로는 발견할 수 없는
+오류</strong>였습니다. 이를 계기로 "조인은 외래키 목록에 존재하는 관계로만 수행" 규칙을
+프롬프트에 추가했습니다.</p>
+
+<h3>한계점 및 향후 발전 로드맵</h3>
+
+<p><strong>현재 한계</strong></p>
+<table>
+  <tr><th style="width:22%">한계</th><th style="width:38%">내용</th><th>보완 방안</th></tr>
+  <tr><td>도메인 어휘 의존</td><td>표현이 바뀌면 규칙 정확도 8/12로 하락</td>
+      <td>협업 분기로 10/12까지 회복. 어휘 사전 확충 또는 임베딩 기반 유사도 매칭 도입</td></tr>
+  <tr><td>시간 조건 미처리</td><td>벡터 검색에 시간 정렬 부재로 "최근" 반영 불가</td>
+      <td>메타데이터 날짜 기반 후처리 정렬 또는 라우터의 시간 표현 감지</td></tr>
+  <tr><td>NL2SQL 정확도 변동</td><td>temperature 0에도 실행마다 오답 문항 변동</td>
+      <td>생성 SQL 검증 강화, 실패 시 재생성</td></tr>
+  <tr><td>무상태 질의</td><td>후속 질문("그 중에서…") 미지원</td>
+      <td>대화 컨텍스트 유지 계층 추가</td></tr>
+  <tr><td>단일 도구 호출</td><td>복수 도구 조합 질의 미지원</td>
+      <td>도구 결과 기반 연쇄 호출</td></tr>
+</table>
+
+<p><strong>향후 로드맵</strong></p>
+<ul>
+  <li><strong>단기</strong> — 라우터 어휘 확충 및 협업 분기 정교화, 시간 조건 처리,
+      답변 환각률 정량 측정</li>
+  <li><strong>중기</strong> — 대화 컨텍스트 지원, 복수 도구 조합, 작업별 모델 분리 배정
+      (SQL 특화 모델 도입), 단순 집계는 템플릿 처리로 LLM 호출 절감</li>
+  <li><strong>장기</strong> — 도구 플러그인 구조화(신규 데이터 소스 추가 시 코드 수정 최소화),
+      운영 지표 수집(도구별 정확도·응답 시간 모니터링), 다중 사용자 환경 대응</li>
+</ul>
+
+<p><strong>유지보수 관점</strong></p>
+<ul>
+  <li>라우터 정확도가 회귀 테스트로 고정되어 있어 규칙 수정 시 즉시 검증됨</li>
+  <li>컨테이너 없이 단위 테스트가 실행되어 기여자의 진입 장벽이 낮음</li>
+  <li>설계 판단의 근거를 커밋 메시지와 코드 주석에 기록해 이후 수정 시 맥락 파악 가능</li>
+</ul>
+
+<h3>소감 및 후기</h3>
+<div class="note">
+  <span class="fill">직접 작성 필요</span> — 아래는 개발 과정에서 실제 있었던 사실입니다. 참고하여 작성하시기 바랍니다.
+</div>
+<ul>
+  <li><strong>"실행 성공"과 "정답"이 다르다는 것을 확인한 경험</strong> — NL2SQL 검증에서 10문항 모두
+      실행에 성공했으나 SQL을 개별 확인하자 2건이 잘못되어 있었습니다. 그중 하나는 데이터의 우연으로
+      결과까지 맞았기에, 결과만 보고 넘어갔다면 발견하지 못했을 오류였습니다.</li>
+  <li><strong>문서화가 적은 최신 스택 조합에서의 문제 해결</strong> — Spring Boot 4 + Spring AI 2.0
+      조합에서 MCP 전송 계층이 조용히 비활성화되는 문제(로그는 정상, 엔드포인트만 404)를 조건 평가
+      리포트로 원인을 특정했습니다. 또한 도구가 LLM을 주입받는 순간 순환 참조가 발생하는 구조적
+      문제를 발견하고 지연 해결로 우회했습니다.</li>
+  <li><strong>성능 문제의 원인을 추측이 아닌 측정으로 규명</strong> — 응답이 느린 원인을 프레임워크로
+      의심했으나, 구간별 측정 결과 45.34초 중 45.28초가 모델 추론 시간이었고 프레임워크 오버헤드는
+      0.06초였습니다. 이후 추론 옵션 분리와 GPU 전환으로 12배 개선했습니다.</li>
+  <li><strong>한계를 측정한 것이 개선으로 이어진 경험</strong> — 예시 질문에서 100%였던 라우터가
+      같은 의미의 다른 표현에서는 67%임을 확인하고, 이를 근거로 규칙과 모델의 협업 분기를
+      설계했습니다.</li>
+</ul>
+
+<h1 class="page-break" style="font-size:15pt; margin-top:0;">붙임1 &nbsp; SBOM (소프트웨어 자재명세서)</h1>
+<p class="meta">선별 기준: ① GPL·AGPL·LGPL 계열 → ② 핵심 기능 담당 → ③ 주요 프레임워크·SDK → ④ 빌드·실행 도구<br>
+전체 의존성 187개 목록은 저장소 <code>docs/DEPENDENCIES.txt</code> 참조(자동 생성)</p>
+
+<table style="font-size:8.6pt">
+  <tr>
+    <th class="c" style="width:5%">번호</th><th style="width:16%">라이브러리명</th>
+    <th style="width:9%">버전</th><th style="width:20%">라이선스</th>
+    <th style="width:22%">공식 저장소 URL</th><th>사용 목적 및 주요 기능</th>
+  </tr>
+  <tr><td class="c">1</td><td>Logback Classic</td><td>1.5.34</td>
+      <td>EPL-2.0 <strong>또는</strong> LGPL-2.1-only (듀얼)</td>
+      <td>github.com/qos-ch/logback</td><td>애플리케이션 로깅 / 라이브러리로 불러 씀(미수정 링크)</td></tr>
+  <tr><td class="c">2</td><td>Logback Core</td><td>1.5.34</td>
+      <td>EPL-2.0 <strong>또는</strong> LGPL-2.1-only (듀얼)</td>
+      <td>github.com/qos-ch/logback</td><td>로깅 코어 모듈 / 라이브러리로 불러 씀(미수정 링크)</td></tr>
+  <tr><td class="c">3</td><td>Jakarta Annotations API</td><td>3.0.0</td>
+      <td>EPL-2.0 <strong>또는</strong> GPL-2.0 <strong>with Classpath Exception</strong></td>
+      <td>github.com/jakartaee/common-annotations-api</td><td>표준 애노테이션 / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">4</td><td>Jakarta Transaction API</td><td>2.0.1</td>
+      <td>EPL-2.0 <strong>또는</strong> GPL-2.0 <strong>with Classpath Exception</strong></td>
+      <td>github.com/jakartaee/transactions</td><td>트랜잭션 표준 API / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">5</td><td>Java MCP SDK</td><td>2.0.0</td><td>MIT</td>
+      <td>github.com/modelcontextprotocol/java-sdk</td><td>MCP 프로토콜 서버·클라이언트 구현 / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">6</td><td>pgvector-java</td><td>0.1.6</td><td>MIT</td>
+      <td>github.com/pgvector/pgvector-java</td><td>벡터 타입 매핑 / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">7</td><td>PostgreSQL JDBC Driver</td><td>42.7.11</td><td>BSD-2-Clause</td>
+      <td>github.com/pgjdbc/pgjdbc</td><td>DB 연결 및 질의 실행 / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">8</td><td>Spring Boot</td><td>4.1.0</td><td>Apache-2.0</td>
+      <td>github.com/spring-projects/spring-boot</td><td>애플리케이션 프레임워크 / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">9</td><td>Spring AI</td><td>2.0.0</td><td>Apache-2.0</td>
+      <td>github.com/spring-projects/spring-ai</td><td>MCP 서버 노출, Ollama 연동 / 라이브러리로 불러 씀</td></tr>
+  <tr><td class="c">10</td><td>Hibernate ORM</td><td>7.4.1.Final</td><td>Apache-2.0</td>
+      <td>github.com/hibernate/hibernate-orm</td><td>JPA 구현체 / 라이브러리로 불러 씀</td></tr>
+</table>
+
+<p><strong>라이선스 충돌 검토 결과</strong></p>
+<ul>
+  <li>강한 카피레프트(GPL · AGPL)는 발견되지 않았습니다.</li>
+  <li>1~2번(Logback)은 EPL-2.0 선택이 가능한 듀얼 라이선스이며, 수정 없이 링크만 하므로
+      LGPL을 택하더라도 소스 공개 의무가 발생하지 않습니다.</li>
+  <li>3~4번은 GPL-2.0이 표기되어 있으나 <strong>Classpath Exception</strong>이 명시되어
+      링크하는 코드에 라이선스가 전파되지 않습니다. Java 표준 API의 통상적 라이선싱 형태입니다.</li>
+  <li>본 프로젝트 라이선스(Apache-2.0)와 충돌하는 항목은 없습니다.</li>
+  <li>대회 제공 데이터셋은 "대회 참가 목적으로만 사용 가능" 조건이므로 Apache-2.0 배포와
+      양립하지 않아 저장소에 포함하지 않았습니다.</li>
+</ul>
+
+<h1 class="page-break" style="font-size:15pt; margin-top:0;">붙임2 &nbsp; AI 모델 활용 및 라이선스 기술 명세서</h1>
+
+<h3>1. AI 모델 활용 유형</h3>
+<table>
+  <tr><td class="c" style="width:6%"><strong>☑</strong></td>
+      <td><strong>유형 1: 외부 모델 그대로 활용</strong> (추가 학습 없이 기존 공개 모델을 프로젝트에 연동·구동)</td></tr>
+  <tr><td class="c">☐</td><td>유형 2: 외부 모델 파인튜닝</td></tr>
+  <tr><td class="c">☐</td><td>유형 3: 자체 개발 모델</td></tr>
+</table>
+
+<h3>2. 기반(베이스) 모델 정보</h3>
+<table>
+  <tr><th style="width:22%">기반 모델명 및 개발사</th>
+      <td>① Gemma 4 E2B (Google) — 답변 생성 및 자연어→SQL 변환<br>
+          ② BGE-M3 (Beijing Academy of Artificial Intelligence) — 문서 · 질의 임베딩</td>
+      <th style="width:16%">기반 모델 라이선스</th>
+      <td style="width:24%">① Gemma Terms of Use<br>② MIT License</td></tr>
+</table>
+<ul>
+  <li>두 모델 모두 <strong>가중치를 수정하지 않고</strong> Ollama 런타임을 통해 로컬에서 구동합니다.</li>
+  <li>파인튜닝, 추가 학습, 가중치 병합을 수행하지 않았습니다.</li>
+  <li class="meta"><span class="fill">확인 권장</span> 각 모델의 라이선스 표기는 배포처 공식 문서로 최종 확인 바랍니다.</li>
+</ul>
+
+<h3>3. 데이터셋 정보 및 가중치 배포 명세</h3>
+<p><strong>해당 없음</strong> (유형 1에 해당하여 학습 데이터셋 및 신규 가중치가 존재하지 않음)</p>
+
+<h3>4. 소스코드 라이선스 및 개발 환경 정보</h3>
+<table>
+  <tr><th style="width:24%">직접 작성한 코드의<br>오픈소스 라이선스</th>
+      <td>Apache License 2.0 (OSI 인증)</td></tr>
+  <tr><th>소스코드 공개 저장소 URL</th>
+      <td>https://github.com/HyunBeenL/liwonaceProject (공개 유지)</td></tr>
+  <tr><th>상용 AI 보조도구<br>활용 여부 및 범위</th>
+      <td>코드 작성 및 디버깅 보조용으로 Claude(Anthropic) 활용.
+          설계 판단과 검증은 직접 수행하였으며,
+          <strong>제출 시스템에는 외부 AI API가 포함되지 않고 Ollama 로컬 모델만 사용</strong>함
+          <br><span class="meta">※ <span class="fill">활용 범위(비율 등)는 실제 작업 비중에 맞게 조정</span></span></td></tr>
+</table>
+
+</body>
+</html>
